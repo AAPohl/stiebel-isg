@@ -1,0 +1,8 @@
+services:
+  stiebel-isg-poller:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: stiebel-isg-poller:latest
+    container_name: stiebel-isg-poller
+    restart: unless-stopped
