@@ -5,13 +5,24 @@ MQTT_PORT="${MQTT_PORT:?MQTT_PORT is not set}"
 MQTT_REQUESTS="${MQTT_REQUESTS:?MQTT_REQUESTS is not set}"
 MQTT_USERNAME="${MQTT_USERNAME:?MQTT_USERNAME is not set}"
 MQTT_PASSWORD="${MQTT_PASSWORD:?MQTT_PASSWORD is not set}"
+ISG_URL="${ISG_URL:?ISG_URL is not set}"
 
 read_isg_values() {
   topics="$1"
   printf '%s\n' "$topics" | tr ';' '\n' | while IFS= read -r topic
   do
     [ -z "$topic" ] && continue
-    value="${#topic}"
+
+    if ! response="$(curl -fsS --max-time 10 --get --data-urlencode "topic=$topic" "$ISG_URL" 2>/dev/null)"; then
+      printf 'ERROR: curl request failed for topic %s\n' "$topic" >&2
+      value="0"
+    elif [ -z "$response" ]; then
+      printf 'ERROR: empty curl response for topic %s\n' "$topic" >&2
+      value="0"
+    else
+      value="${#response}"
+    fi
+
     printf '%s=%s\n' "$topic" "$value"
   done
 }
@@ -63,3 +74,4 @@ do
   done
   sleep 30
 done
+
