@@ -11,7 +11,7 @@ services:
     environment:
       MQTT_HOST: mqtt-broker
       MQTT_PORT: "1883"
-      MQTT_TOPIC: stiebel/isg/value
+      MQTT_REQUESTS: value1=stiebel/isg/value1;value2=stiebel/isg/value2
       MQTT_USERNAME: stiebel
       MQTT_PASSWORD: stiebel
 
