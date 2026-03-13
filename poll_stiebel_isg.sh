@@ -36,7 +36,11 @@ read_isg_values() {
   do
     [ -z "$key" ] && continue
 
-    value="$(printf '%s\n' "$html" | grep -A1 "$key" | tail -n1 | sed -nE 's/.*>(-?[0-9]+([.,][0-9]+)?)([[:space:]]*[[:alpha:]%°/]+)?<.*/\1/p')"
+    value="$(printf '%s\n' "$html" \
+      | grep -A1 "$key" \
+      | tail -n1 \
+      | sed -nE 's/.*>(-?[0-9]+([.,][0-9]+)?)([[:space:]]*[[:alpha:]%°/]+)?<.*/\1/p' \
+      | tr ',' '.')"
 
     if [ -z "$value" ]; then
       printf 'ERROR: no value found for key %s\n' "$key" >&2
