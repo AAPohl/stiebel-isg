@@ -6,3 +6,18 @@ services:
     image: stiebel-isg-poller:latest
     container_name: stiebel-isg-poller
     restart: unless-stopped
+    depends_on:
+      - mqtt-broker
+    environment:
+      MQTT_HOST: mqtt-broker
+      MQTT_PORT: "1883"
+      MQTT_TOPIC: stiebel/isg/value
+      MQTT_USERNAME: stiebel
+      MQTT_PASSWORD: stiebel
+
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    container_name: mqtt-broker
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
