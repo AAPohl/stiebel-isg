@@ -8,22 +8,30 @@ MQTT_PASSWORD="${MQTT_PASSWORD:?MQTT_PASSWORD is not set}"
 ISG_URL="${ISG_URL:?ISG_URL is not set}"
 
 read_isg_values() {
-  topics="$1"
-  printf '%s\n' "$topics" | tr ';' '\n' | while IFS= read -r topic
-  do
-    [ -z "$topic" ] && continue
+  keys="$1"
 
-    if ! response="$(curl -fsS --max-time 10 --get --data-urlencode "topic=$topic" "$ISG_URL" 2>/dev/null)"; then
-      printf 'ERROR: curl request failed for topic %s\n' "$topic" >&2
+  if ! html="$(curl -fsS --max-time 15 "$ISG_URL" 2>/dev/null)"; then
+    printf 'ERROR: curl request failed for %s\n' "$ISG_URL" >&2
+    return 1
+  fi
+
+  if [ -z "$html" ]; then
+    printf 'ERROR: empty curl response from %s\n' "$ISG_URL" >&2
+    return 1
+  fi
+
+  printf '%s\n' "$keys" | tr ';' '\n' | while IFS= read -r key
+  do
+    [ -z "$key" ] && continue
+
+    value="$(printf '%s\n' "$html" | grep -A1 "$key" | tail -n1 | sed -nE 's/.*>(-?[0-9]+([.,][0-9]+)?)([[:space:]]*[[:alpha:]%°/]+)?<.*/\1/p')"
+
+    if [ -z "$value" ]; then
+      printf 'ERROR: no value found for key %s\n' "$key" >&2
       value="0"
-    elif [ -z "$response" ]; then
-      printf 'ERROR: empty curl response for topic %s\n' "$topic" >&2
-      value="0"
-    else
-      value="${#response}"
     fi
 
-    printf '%s=%s\n' "$topic" "$value"
+    printf '%s=%s\n' "$key" "$value"
   done
 }
 
@@ -44,17 +52,20 @@ done
 
 while true
 do
-  topic_list="$(
-    printf '%s\n' "$MQTT_REQUESTS" | tr ';' '\n' | awk -F= 'NF==2 && $1!="" && $2!="" && $1!=$2 { print $2 }' | paste -sd';' -
+  key_list="$(
+    printf '%s\n' "$MQTT_REQUESTS" | tr ';' '\n' | awk -F= 'NF==2 && $1!="" && $2!="" && $1!=$2 { print $1 }' | paste -sd';' -
   )"
 
-  if [ -z "$topic_list" ]; then
+  if [ -z "$key_list" ]; then
     printf 'ERROR: No valid requests in MQTT_REQUESTS\n' >&2
     sleep 30
     continue
   fi
 
-  values_list="$(read_isg_values "$topic_list")"
+  values_list="$(read_isg_values "$key_list")" || {
+    sleep 30
+    continue
+  }
 
   printf '%s\n' "$MQTT_REQUESTS" | tr ';' '\n' | while IFS= read -r pair
   do
@@ -67,11 +78,10 @@ do
       continue
     fi
 
-    value="$(printf '%s\n' "$values_list" | awk -F= -v t="$mqtt_topic" '$1==t { print $2; exit }')"
+    value="$(printf '%s\n' "$values_list" | awk -F= -v k="$isg_key" '$1==k { print $2; exit }')"
     [ -z "$value" ] && value="0"
 
     mosquitto_pub -h "$MQTT_HOST" -p "$MQTT_PORT" -t "$mqtt_topic" -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" -m "$value" || printf 'ERROR: MQTT publish failed for topic %s\n' "$mqtt_topic" >&2
   done
   sleep 30
 done
-
