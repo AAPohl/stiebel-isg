@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY poll_stiebel_isg.sh /app/poll_stiebel_isg.sh
 
-RUN apk add --no-cache mosquitto-clients curl \
+RUN apk add --no-cache mosquitto-clients curl sed\
     && sed -i 's/\r$//' /app/poll_stiebel_isg.sh \
     && chmod +x /app/poll_stiebel_isg.sh
 
