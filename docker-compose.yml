@@ -14,6 +14,7 @@ services:
       MQTT_REQUESTS: value1=stiebel/isg/value1;value2=stiebel/isg/value2
       MQTT_USERNAME: stiebel
       MQTT_PASSWORD: stiebel
+      ISG_URL: https://httpbin.org/get
 
   mqtt-broker:
     image: eclipse-mosquitto:2
